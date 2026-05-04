@@ -47,6 +47,7 @@ jobs:
       run: |
         git config --global --add safe.directory '*'
         /usr/bin/python3 -m pip install -r requirements.txt --break-system-packages
+        /usr/bin/python3 -m pip install qmk==1.1.5 milc==1.9.0 --break-system-packages
         qmk setup -y
         make ${{ inputs.keyboard }}/${{ inputs.side }}:${{ inputs.keymap }}
       shell: bash
