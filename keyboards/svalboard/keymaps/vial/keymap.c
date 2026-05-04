@@ -5,7 +5,18 @@
 #include <stdint.h>
 #include "svalboard.h"
 
-// Standard layer definitions
+// Tell the compiler this function will exist
+report_mouse_t sval_support_pointing_device_task_user(report_mouse_t mouse_report);
+
+// Rename the support file's function as it compiles so it doesn't conflict
+#define pointing_device_task_user sval_support_pointing_device_task_user
+#include "../keymap_support.c"
+#undef pointing_device_task_user
+
+bool is_jiggling = false;
+uint32_t jiggle_timer = 0;
+uint8_t jiggle_step = 0;
+
 enum layer {
     NORMAL = 0,
     NAVNAS = 1,
@@ -13,20 +24,6 @@ enum layer {
     BOARD_CONFIG = 3,
     MBO = 4,
 };
-
-// State variables
-bool is_jiggling = false;
-uint32_t jiggle_timer = 0;
-uint8_t jiggle_step = 0;
-
-// Wrapper for the trackball task only
-report_mouse_t sval_support_pointing_device_task_user(report_mouse_t mouse_report);
-#define pointing_device_task_user sval_support_pointing_device_task_user
-#include "../keymap_support.c"
-#undef pointing_device_task_user
-
-// Fallback in case trackball logic is disabled in a variant
-__attribute__((weak)) report_mouse_t sval_support_pointing_device_task_user(report_mouse_t mouse_report) { return mouse_report; }
 
 #if __has_include("keymap_all.h")
 #include "keymap_all.h"
@@ -92,12 +89,11 @@ const uint16_t PROGMEM keymaps[DYNAMIC_KEYMAP_LAYER_COUNT][MATRIX_ROWS][MATRIX_C
         KC_BTN2, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_NO,
         KC_TRNS, KC_TRNS, KC_TRNS, SV_SNIPER_3, KC_TRNS, KC_NO,
         KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS,
-        KC_BTN1, KC_BTN1, KC_TRNS, KC_BTN2, KC_TRNS, KC_TRNS          
+        KC_TRNS, KC_BTN1, KC_TRNS, KC_BTN2, KC_TRNS, KC_TRNS          
     ),
 };
 #endif
 
-// Logic to kill jiggler if manually on layer 0
 layer_state_t default_layer_state_set_user(layer_state_t state) {
   sval_set_active_layer(0, false);
   return state;
@@ -120,7 +116,6 @@ void keyboard_post_init_user(void) {
 #endif
 }
 
-// Jiggler Toggle
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     switch (keycode) {
         case KC_F24:
@@ -139,7 +134,6 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     return true; 
 }
 
-// Automated 15s pattern
 void matrix_scan_user(void) {
     if (!is_jiggling) return;
     if (jiggle_step == 0 && timer_elapsed32(jiggle_timer) > 15000) {
@@ -165,11 +159,12 @@ void matrix_scan_user(void) {
     }
 }
 
-// Kill jiggler if ball is moved physically
 report_mouse_t pointing_device_task_user(report_mouse_t mouse_report) {
+    // If tracking movement comes from the physical ball, kill the jiggler
     if (is_jiggling && (mouse_report.x != 0 || mouse_report.y != 0)) {
         is_jiggling = false;
         layer_move(NORMAL);
     }
+    // Pass the data back to the renamed Svalboard function
     return sval_support_pointing_device_task_user(mouse_report);
 }
