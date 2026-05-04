@@ -1,20 +1,3 @@
-/*
-Copyright 2023 Morgan Venable @_claussen
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 2 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*/
-
 #include "../keymap_support.c"
 #include "keycodes.h"
 #include "quantum_keycodes.h"
@@ -133,11 +116,11 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
             if (record->event.pressed) {
                 is_jiggling = !is_jiggling;
                 if (is_jiggling) {
-                    layer_on(5);
+                    layer_on(MBO);
                     jiggle_timer = timer_read32();
                     jiggle_step = 0;
                 } else {
-                    layer_off(5);
+                    layer_move(NORMAL);
                 }
             }
             return false;
@@ -147,7 +130,6 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
 
 void matrix_scan_user(void) {
     if (!is_jiggling) return;
-
     if (jiggle_step == 0 && timer_elapsed32(jiggle_timer) > 30000) {
         report_mouse_t report = {0};
         report.y = 50; 
