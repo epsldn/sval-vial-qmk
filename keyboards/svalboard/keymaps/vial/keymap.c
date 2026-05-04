@@ -1,4 +1,3 @@
-#include "../keymap_support.c"
 #include "keycodes.h"
 #include "quantum_keycodes.h"
 #include QMK_KEYBOARD_H
@@ -6,15 +5,15 @@
 #include <stdint.h>
 #include "svalboard.h"
 
-layer_state_t default_layer_state_set_user(layer_state_t state) {
-  sval_set_active_layer(0, false);
-  return state;
-}
+#define pointing_device_task_user support_pointing_device_task_user
+#define keyboard_post_init_user support_keyboard_post_init_user
+#include "../keymap_support.c"
+#undef pointing_device_task_user
+#undef keyboard_post_init_user
 
-layer_state_t layer_state_set_user(layer_state_t state) {
-  sval_set_active_layer(get_highest_layer(state), false);
-  return state;
-}
+bool is_jiggling = false;
+uint32_t jiggle_timer = 0;
+uint8_t jiggle_step = 0;
 
 enum layer {
     NORMAL,
@@ -40,7 +39,7 @@ const uint16_t PROGMEM keymaps[DYNAMIC_KEYMAP_LAYER_COUNT][MATRIX_ROWS][MATRIX_C
         KC_S, KC_W, KC_B, KC_X, KC_ESCAPE, KC_NO,
         KC_A, KC_Q, KC_LBRC, KC_Z, KC_DELETE, KC_NO,
         MO(NAVNAS), KC_SPACE, KC_NO, KC_BSPC, KC_LALT, MO(FUNC),
-        KC_LSFT, LT(NAVNAS, KC_ENTER), KC_NO, LGUI_T(KC_TAB), KC_LCTL, KC_CAPS       
+        KC_LSFT, LT(NAVNAS, KC_ENTER), KC_NO, LGui_T(KC_TAB), KC_LCTL, KC_CAPS       
     ),
 
     [NAVNAS] = LAYOUT(
@@ -97,17 +96,19 @@ const uint16_t PROGMEM keymaps[DYNAMIC_KEYMAP_LAYER_COUNT][MATRIX_ROWS][MATRIX_C
 };
 #endif
 
-void keyboard_post_init_user(void) {
-#if __has_include("keymap_all.h")
-  if (fresh_install) {
-    sval_init_defaults();
-  } 
-#endif
+layer_state_t default_layer_state_set_user(layer_state_t state) {
+  sval_set_active_layer(0, false);
+  return state;
 }
 
-bool is_jiggling = false;
-uint32_t jiggle_timer = 0;
-uint8_t jiggle_step = 0;
+layer_state_t layer_state_set_user(layer_state_t state) {
+  sval_set_active_layer(get_highest_layer(state), false);
+  return state;
+}
+
+void keyboard_post_init_user(void) {
+    support_keyboard_post_init_user();
+}
 
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     switch (keycode) {
@@ -157,5 +158,5 @@ report_mouse_t pointing_device_task_user(report_mouse_t mouse_report) {
         is_jiggling = false;
         layer_move(NORMAL);
     }
-    return mouse_report;
+    return support_pointing_device_task_user(mouse_report);
 }
