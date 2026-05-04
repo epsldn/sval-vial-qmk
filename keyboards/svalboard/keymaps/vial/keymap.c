@@ -68,4 +68,101 @@ const uint16_t PROGMEM keymaps[DYNAMIC_KEYMAP_LAYER_COUNT][MATRIX_ROWS][MATRIX_C
         KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS         
     ),
     [BOARD_CONFIG] = LAYOUT(
-        KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS,
+        KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_NO,
+        KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_NO,
+        KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_NO,
+        KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_NO,
+        SV_OUTPUT_STATUS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_NO,
+        KC_TRNS, SV_RIGHT_DPI_INC, KC_TRNS, SV_RIGHT_DPI_DEC, KC_TRNS, KC_NO,
+        KC_TRNS, SV_LEFT_DPI_INC, KC_TRNS, SV_LEFT_DPI_DEC, KC_TRNS, KC_NO,
+        KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_NO,
+        KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS,
+        KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS
+    ),
+    [MBO] = LAYOUT(
+        KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_NO,
+        KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_NO,
+        KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_NO,
+        KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_NO,
+        KC_BTN1, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_NO,
+        KC_BTN3, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_NO,
+        KC_BTN2, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_NO,
+        KC_TRNS, KC_TRNS, KC_TRNS, SV_SNIPER_3, KC_TRNS, KC_NO,
+        KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS,
+        KC_TRNS, KC_BTN1, KC_TRNS, KC_BTN2, KC_TRNS, KC_TRNS          
+    ),
+};
+#endif
+
+layer_state_t default_layer_state_set_user(layer_state_t state) {
+  sval_set_active_layer(0, false);
+  return state;
+}
+
+layer_state_t layer_state_set_user(layer_state_t state) {
+  uint8_t highest_layer = get_highest_layer(state);
+  if (highest_layer == NORMAL) {
+    is_jiggling = false;
+  }
+  sval_set_active_layer(highest_layer, false);
+  return state;
+}
+
+void keyboard_post_init_user(void) {
+#if __has_include("keymap_all.h")
+  if (fresh_install) {
+    sval_init_defaults();
+  } 
+#endif
+}
+
+bool process_record_user(uint16_t keycode, keyrecord_t *record) {
+    switch (keycode) {
+        case KC_F24:
+            if (record->event.pressed) {
+                is_jiggling = !is_jiggling;
+                if (is_jiggling) {
+                    layer_on(MBO);
+                    jiggle_timer = timer_read32();
+                    jiggle_step = 0;
+                } else {
+                    layer_move(NORMAL);
+                }
+            }
+            return false;
+    }
+    return true; 
+}
+
+void matrix_scan_user(void) {
+    if (!is_jiggling) return;
+    if (jiggle_step == 0 && timer_elapsed32(jiggle_timer) > 15000) {
+        report_mouse_t report = {0};
+        report.y = 50; 
+        host_mouse_send(&report);
+        jiggle_step = 1;
+        jiggle_timer = timer_read32();
+    }
+    else if (jiggle_step == 1 && timer_elapsed32(jiggle_timer) > 200) {
+        report_mouse_t report = {0};
+        report.y = -50; 
+        host_mouse_send(&report);
+        jiggle_step = 2; 
+        jiggle_timer = timer_read32();
+    }
+    else if (jiggle_step == 2 && timer_elapsed32(jiggle_timer) > 200) {
+        report_mouse_t report = {0};
+        report.y = 0; 
+        host_mouse_send(&report);
+        jiggle_step = 0;
+        jiggle_timer = timer_read32();
+    }
+}
+
+report_mouse_t pointing_device_task_user(report_mouse_t mouse_report) {
+    if (is_jiggling && (mouse_report.x != 0 || mouse_report.y != 0)) {
+        is_jiggling = false;
+        layer_move(NORMAL);
+    }
+    return sval_support_pointing_device_task_user(mouse_report);
+}
