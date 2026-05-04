@@ -46,9 +46,9 @@ jobs:
       id: build_firmware
       run: |
         git config --global --add safe.directory '*'
+        find lib/python/qmk -name "*.py" -exec sed -i 's/ast\.Num/ast\.Constant/g' {} +
+        find lib/python/qmk -name "*.py" -exec sed -i 's/node\.n/node\.value/g' {} +
         /usr/bin/python3 -m pip install -r requirements.txt --break-system-packages
-        sed -i 's/ast\.Num/ast\.Constant/g' lib/python/qmk/math.py
-        sed -i 's/node\.n/node\.value/g' lib/python/qmk/math.py
         qmk setup -y
         make ${{ inputs.keyboard }}/${{ inputs.side }}:${{ inputs.keymap }}
       shell: bash
