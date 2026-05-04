@@ -5,29 +5,23 @@
 #include <stdint.h>
 #include "svalboard.h"
 
-enum layer {
-    NORMAL,
-    NAVNAS,
-    FUNC,
-    BOARD_CONFIG = MH_AUTO_BUTTONS_LAYER - 1,
-    MBO = MH_AUTO_BUTTONS_LAYER,
-};
+#define pointing_device_task_user support_pointing_device_task_user
+#define keyboard_post_init_user support_keyboard_post_init_user
+#include "../keymap_support.c"
+#undef pointing_device_task_user
+#undef keyboard_post_init_user
 
 bool is_jiggling = false;
 uint32_t jiggle_timer = 0;
 uint8_t jiggle_step = 0;
 
-report_mouse_t support_pointing_device_task_user(report_mouse_t mouse_report);
-void support_keyboard_post_init_user(void);
-
-#define pointing_device_task_user sval_support_pointing_device_task_user
-#define keyboard_post_init_user sval_support_keyboard_post_init_user
-#include "../keymap_support.c"
-#undef pointing_device_task_user
-#undef keyboard_post_init_user
-
-__attribute__((weak)) report_mouse_t sval_support_pointing_device_task_user(report_mouse_t mouse_report) { return mouse_report; }
-__attribute__((weak)) void sval_support_keyboard_post_init_user(void) {}
+enum layer {
+    NORMAL,
+    NAVNAS,
+    FUNC,
+    BOARD_CONFIG = MH_AUTO_BUTTONS - 1,
+    MBO = MH_AUTO_BUTTONS,
+};
 
 #if __has_include("keymap_all.h")
 #include "keymap_all.h"
@@ -113,7 +107,7 @@ layer_state_t layer_state_set_user(layer_state_t state) {
 }
 
 void keyboard_post_init_user(void) {
-    sval_support_keyboard_post_init_user();
+    support_keyboard_post_init_user();
 }
 
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
@@ -164,5 +158,5 @@ report_mouse_t pointing_device_task_user(report_mouse_t mouse_report) {
         is_jiggling = false;
         layer_move(NORMAL);
     }
-    return sval_support_pointing_device_task_user(mouse_report);
+    return support_pointing_device_task_user(mouse_report);
 }
