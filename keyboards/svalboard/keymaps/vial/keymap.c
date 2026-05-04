@@ -5,19 +5,6 @@
 #include <stdint.h>
 #include "svalboard.h"
 
-report_mouse_t support_pointing_device_task_user(report_mouse_t mouse_report);
-void support_keyboard_post_init_user(void);
-
-#define pointing_device_task_user support_pointing_device_task_user
-#define keyboard_post_init_user support_keyboard_post_init_user
-#include "../keymap_support.c"
-#undef pointing_device_task_user
-#undef keyboard_post_init_user
-
-bool is_jiggling = false;
-uint32_t jiggle_timer = 0;
-uint8_t jiggle_step = 0;
-
 enum layer {
     NORMAL,
     NAVNAS,
@@ -25,6 +12,22 @@ enum layer {
     BOARD_CONFIG = MH_AUTO_BUTTONS_LAYER - 1,
     MBO = MH_AUTO_BUTTONS_LAYER,
 };
+
+bool is_jiggling = false;
+uint32_t jiggle_timer = 0;
+uint8_t jiggle_step = 0;
+
+report_mouse_t support_pointing_device_task_user(report_mouse_t mouse_report);
+void support_keyboard_post_init_user(void);
+
+#define pointing_device_task_user sval_support_pointing_device_task_user
+#define keyboard_post_init_user sval_support_keyboard_post_init_user
+#include "../keymap_support.c"
+#undef pointing_device_task_user
+#undef keyboard_post_init_user
+
+__attribute__((weak)) report_mouse_t sval_support_pointing_device_task_user(report_mouse_t mouse_report) { return mouse_report; }
+__attribute__((weak)) void sval_support_keyboard_post_init_user(void) {}
 
 #if __has_include("keymap_all.h")
 #include "keymap_all.h"
@@ -101,12 +104,16 @@ layer_state_t default_layer_state_set_user(layer_state_t state) {
 }
 
 layer_state_t layer_state_set_user(layer_state_t state) {
-  sval_set_active_layer(get_highest_layer(state), false);
+  uint8_t highest_layer = get_highest_layer(state);
+  if (highest_layer == NORMAL) {
+    is_jiggling = false;
+  }
+  sval_set_active_layer(highest_layer, false);
   return state;
 }
 
 void keyboard_post_init_user(void) {
-    support_keyboard_post_init_user();
+    sval_support_keyboard_post_init_user();
 }
 
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
@@ -157,5 +164,5 @@ report_mouse_t pointing_device_task_user(report_mouse_t mouse_report) {
         is_jiggling = false;
         layer_move(NORMAL);
     }
-    return support_pointing_device_task_user(mouse_report);
+    return sval_support_pointing_device_task_user(mouse_report);
 }
