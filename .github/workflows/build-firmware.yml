@@ -46,7 +46,9 @@ jobs:
       id: build_firmware
       run: |
         git config --global --add safe.directory '*'
-        /usr/bin/python3 -m pip install -r /__w/vial-qmk/vial-qmk/requirements.txt --break-system-packages
+        /usr/bin/python3 -m pip install -r requirements.txt --break-system-packages
+        sed -i 's/ast\.Num/ast\.Constant/g' lib/python/qmk/math.py
+        sed -i 's/node\.n/node\.value/g' lib/python/qmk/math.py
         qmk setup -y
         make ${{ inputs.keyboard }}/${{ inputs.side }}:${{ inputs.keymap }}
       shell: bash
@@ -82,4 +84,3 @@ jobs:
       with:
         files: |
           ${{ steps.move_file.outputs.file_name }}
-
