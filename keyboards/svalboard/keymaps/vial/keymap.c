@@ -5,6 +5,11 @@
 #include <stdint.h>
 #include "svalboard.h"
 
+#pragma once
+#undef POINTING_DEVICE_AUTO_MOUSE_TIMEOUT
+#define POINTING_DEVICE_AUTO_MOUSE_TIMEOUT 150
+
+
 // Tell the compiler this function will exist
 report_mouse_t sval_support_pointing_device_task_user(report_mouse_t mouse_report);
 
